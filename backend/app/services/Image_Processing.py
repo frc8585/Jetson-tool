@@ -52,10 +52,6 @@ class Image_Processing:
             # Show the frame
             cv2.imshow('AprilTag Detection', frame)
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                self.stop()
-                break
-
         cap.release()
         cv2.destroyAllWindows()
 
