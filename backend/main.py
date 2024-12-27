@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 # 動態設置 PYTHONPATH
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from app.services import image_processing
+
 from app.api import register_routes  # 將 API 路由註冊為獨立函數
 from app.utils import startup_tasks, shutdown_tasks  # 啟動/關閉時的輔助任務
 from config import settings  # 配置文件
