@@ -52,6 +52,9 @@ class Image_Processing:
             # Show the frame
             cv2.imshow('AprilTag Detection', frame)
 
+            cv2.waitKey(1)
+                
+
         cap.release()
         cv2.destroyAllWindows()
 
