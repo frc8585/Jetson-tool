@@ -2,7 +2,6 @@ import sys
 import os
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from app.services import image_processing
 
 # 動態設置 PYTHONPATH
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
