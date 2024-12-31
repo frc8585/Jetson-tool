@@ -13,7 +13,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!token || !verifyToken(token)) {
       router.push("/login");
     }
-  }, []);
+  }, [router]);
 
   return <>{children}</>;
 }
