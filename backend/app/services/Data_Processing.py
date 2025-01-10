@@ -30,14 +30,18 @@ class Game_piece:
         }
 
 class Robot:
-    def __init__(self, position, orientation):
+    def __init__(self, position, orientation, revc, tvec):
         self.position = position
         self.orientation = orientation
+        self.revc = revc
+        self.tvec = tvec
 
     def to_dict(self):
         return {
             "position": self.position.tolist(),
-            "orientation": self.orientation.tolist()
+            "orientation": self.orientation.tolist(),
+            "revc": self.revc.tolist() if self.revc is not None else None,
+            "tvec": self.tvec.tolist() if self.tvec is not None else None
         }
 
 class Data:
@@ -89,8 +93,7 @@ class Data_Processor:
         data = []
         for tag in self.__latest_data.tag:
 
-
-            _, rvec, tvec = cv2.solvePnP(self.tags_points[0], tag.corner, self.K, None)
+            _, rvec, tvec = cv2.solvePnP(self.tags_points[tag.id], tag.corner, self.K, None)
             R, _ = cv2.Rodrigues(rvec)
 
             camera_position = -np.dot(R.T, tvec)
@@ -101,85 +104,18 @@ class Data_Processor:
 
             data.append(Robot(
                 position=camera_position,
-                orientation=[pitch, yaw, roll]
+                orientation=[pitch, yaw, roll],
+                revc=rvec,
+                tvec=tvec
             ))
 
         # 平均結果
         if data:
             avg_position = np.mean([d.position for d in data], axis=0)
             avg_orientation = np.mean([d.orientation for d in data], axis=0)
-            self.__latest_data.robot = Robot(position=avg_position, orientation=avg_orientation)
+            self.__latest_data.robot = Robot(position=avg_position, orientation=avg_orientation, revc=rvec, tvec=tvec)
         else:
             self.__latest_data.robot = None
         
         # 計算GamePiece資料
 
-class Detector:
-    def __init__(self):
-        self.tag_size = 0.165
-        field = Field()
-        self.tags_points = np.array(field.get_field_by_key('2024'), dtype=np.float64)
-
-        self.fx = 514.6338686934114
-        self.fy = 515.6938267958315
-        self.cx = 312.9011223681166
-        self.cy = 228.9001964935265
-
-        self.K = np.array([
-            [self.fx, 0, self.cx],
-            [0, self.fy, self.cy],
-            [0, 0, 1]
-        ])
-
-        self.detector = apriltag.AprilTagDetector()
-        self.detector.addFamily("tag36h11")
-
-        self.__data = Data()
-        self.data_processor = Data_Processor()
-
-    def detect(self, frame):
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        # Detect AprilTags
-        results = self.detector.detect(gray)
-
-        for result in results:
-            tag_points = np.array([
-                [result.getCorner(0).x, result.getCorner(0).y],
-                [result.getCorner(1).x, result.getCorner(1).y],
-                [result.getCorner(2).x, result.getCorner(2).y],
-                [result.getCorner(3).x, result.getCorner(3).y]
-            ], dtype=np.float64)
-            self.__data.tag.append(
-                Tag(
-                    id=result.getId(),
-                    corner=tag_points
-                )
-            )
-
-        # upload the data to Data_Processing
-        self.data_processor.upload(self.__data)
-        # Return the results
-        return self.__data
-
-if __name__ == "__main__":
-    detector = Detector()
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("無法打開相機")
-        exit()
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("無法讀取影像")
-            break
-
-        detector.detect(frame)
-
-        cv2.imshow('AprilTag Detection', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    cap.release()
-    cv2.destroyAllWindows()
