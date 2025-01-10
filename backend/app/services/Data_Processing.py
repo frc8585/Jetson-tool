@@ -61,7 +61,7 @@ class Data_Processor:
     def __init__(self):
         self.tag_size = 0.165
         field = Field()
-        self.tags_points = np.array(field.get_field_by_key('2024').get("Tags"), dtype=np.float64)
+        self.tags_points = np.array(field.get_field_by_key('2025').get("Tags"), dtype=np.float64)
 
         self.fx = 514.6338686934114
         self.fy = 515.6938267958315
