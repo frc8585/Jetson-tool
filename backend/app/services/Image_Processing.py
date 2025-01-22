@@ -59,7 +59,7 @@ class Image_Processing:
                                     case "rectangle":
                                         cv2.rectangle(frame, (child["x"], child["y"]), (child["x"] + child["w"], child["y"] + child["h"]), (0, 255, 0), 2)
                                     case "circle":
-                                        self.draw_circle(frame, child["center"], child["r"], child["normal"], (0, 255, 0), 2)    
+                                        self.draw_circle(frame, child["center"], child["r"], child["normal"], (0, 255, 0), 2)
                                     case _:
                                         print("Unknown shape")
                             break
