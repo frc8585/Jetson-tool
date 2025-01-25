@@ -7,3 +7,6 @@ detector = Detector()
 
 from .Image_Processing import Image_Processing
 image_processing = Image_Processing()
+
+from .NetworkTables import NetworkTables
+network_tables = NetworkTables()
