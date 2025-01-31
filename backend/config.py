@@ -26,21 +26,30 @@ settings = Settings()
 
 class Camera:
     def __init__(self):
-        with open('backend/public/camera/camera.json', 'r') as jsonFile:
+        # 使用 os.path.join 構建跨平台路徑
+        self.camera_json_path = os.path.join('backend', 'public', 'camera', 'camera.json')
+        with open(self.camera_json_path, 'r') as jsonFile:
             self.__camera = json.load(jsonFile)
 
-    def get_camera(self):
+    def get_all_camera(self):
         return self.__camera
     
-    def set_camera(self, camera):
-        self.__camera = camera
-        with open('public/camera/camera.json', 'w') as jsonFile:
-            json.dump(camera, jsonFile)
+    def remove_camera(self, camera):
+        if camera in self.__camera:
+            self.__camera.remove(camera)
+        with open(self.camera_json_path, 'w') as jsonFile:
+            json.dump(self.__camera, jsonFile)
+
+    def add_camera(self, camera):
+        self.__camera.append(camera)
+        with open(self.camera_json_path, 'w') as jsonFile:
+            json.dump(self.__camera, jsonFile)
 
 class Field:
     def __init__(self):
         self.__field = {}
-        field_dir = 'backend\public\Field'
+        # 使用 os.path.join 構建跨平台路徑
+        field_dir = os.path.join('backend', 'public', 'Field')
         for filename in os.listdir(field_dir):
             if filename.endswith('.json'):
                 filepath = os.path.join(field_dir, filename)
