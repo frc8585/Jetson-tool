@@ -6,7 +6,7 @@ class NetworkTables:
         self.inst = NT.getDefault()
 
         self.table = self.inst.getTable("Jetson")
-        
+        self.test = self.inst.getBooleanTopic("/Jetson/test").publish()
         # start a NT4 client
         self.inst.startClient4("example client")
         # connect to a roboRIO with team number TEAM
@@ -15,6 +15,8 @@ class NetworkTables:
         self.inst.startDSClient()
         # connect to a specific host/port
         self.inst.setServer("host", NT.kDefaultPort4)
+
+        self.test.set(True)
 
         print("NetworkTables Initialized")
 
