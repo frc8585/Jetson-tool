@@ -6,7 +6,7 @@ class NetworkTables:
         self.inst = NT.getDefault()
 
         self.table = self.inst.getTable("Jetson")
-        self.test = self.inst.getBooleanTopic("/Jetson/test").publish()
+        self.test = self.table.getBooleanTopic("test").publish()
         # start a NT4 client
         self.inst.startClient4("example client")
         # connect to a roboRIO with team number TEAM
@@ -28,6 +28,9 @@ class NetworkTables:
 
     def update(self, title, value):
         self.table.putValue(title, value)
+
+    def update_numberArray(self, title, value):
+        self.table.putNumberArray(title, value)
 
     def close(self):
         self.test.set(False)
