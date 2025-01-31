@@ -3,14 +3,16 @@ import numpy as np
 import robotpy_apriltag as apriltag
 from threading import Thread, Event
 
-from app.services import detector
+from app.services import detector, data_processor
 from config import Field
 
 class Image_Processing:
     def __init__(self):
         self.tag_size = 0.165
         field = Field()
-        self.tags_points = np.array(field.get_field_by_key('2024'), dtype=np.float64)
+        self.tags_points = np.array(field.get_field_by_key('2025').get("Tags"), dtype=np.float64)
+
+        self.field = np.array(field.get_field_by_key('2025').get("Field"))
 
         self.index = 1
 
@@ -48,6 +50,19 @@ class Image_Processing:
 
                     cv2.putText(frame, f"ID: {result.id}", (int(result.corner[0][0]), int(result.corner[0][1]) - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    
+                    for field in self.field:
+                        
+                        if result.id in field["Tags"]:
+                            for name,child in field["child"].items():
+                                match child["shape"]:
+                                    case "rectangle":
+                                        cv2.rectangle(frame, (child["x"], child["y"]), (child["x"] + child["w"], child["y"] + child["h"]), (0, 255, 0), 2)
+                                    case "circle":
+                                        self.draw_circle(frame, child["center"], child["r"], child["normal"], (0, 255, 0), 2)
+                                    case _:
+                                        print("Unknown shape")
+                            break
 
             # Show the frame
             cv2.imshow('AprilTag Detection', frame)
@@ -57,6 +72,18 @@ class Image_Processing:
 
         cap.release()
         cv2.destroyAllWindows()
+
+    def draw_circle(self, frame, center, radius, normal_vector, color=(0, 255, 0), thickness=2):
+        center = np.array(center).astype(np.float64)
+        radius = np.float64(radius)
+        normal_vector = np.array(normal_vector).astype(np.float64)
+        rvec = data_processor.get_latest_data().robot.revc
+        tvec = data_processor.get_latest_data().robot.tvec
+        K = data_processor.K
+
+        center_2, _ = cv2.projectPoints(center, rvec, tvec, K, distCoeffs=None)
+
+        cv2.circle(frame, tuple(center_2.ravel().astype(int)), 10, color, thickness)
 
     def run(self):
         if self.thread is None or not self.thread.is_alive():
