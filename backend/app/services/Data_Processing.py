@@ -4,6 +4,7 @@ import json
 import robotpy_apriltag as apriltag
 
 from config import Field
+from app.services import networktables
 
 class Tag:
     def __init__(self, id, corner):
@@ -111,11 +112,19 @@ class Data_Processor:
 
         # 平均結果
         if data:
-            avg_position = np.mean([d.position for d in data], axis=0)
-            avg_orientation = np.mean([d.orientation for d in data], axis=0)
+            #機器平均位置
+            avg_position = np.array(np.mean([d.position for d in data], axis=0))
+            networktables.update("/robot/position", avg_position.flatten().tolist())
+
+            #機器平均方向
+            avg_orientation = np.array(np.mean([d.orientation for d in data], axis=0))
+            networktables.update("/robot/orientation", avg_orientation.flatten().tolist())
+            
+            #存至程式內存
             self.__latest_data.robot = Robot(position=avg_position, orientation=avg_orientation, revc=rvec, tvec=tvec)
         else:
             self.__latest_data.robot = None
         
         # 計算GamePiece資料
+
 
