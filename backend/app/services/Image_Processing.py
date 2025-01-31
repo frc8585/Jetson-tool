@@ -3,7 +3,7 @@ import numpy as np
 import robotpy_apriltag as apriltag
 from threading import Thread, Event
 
-from app.services import detector, data_processor
+from app.services import detector, networktables, data_processor
 from config import Field
 
 class Image_Processing:
@@ -14,7 +14,7 @@ class Image_Processing:
 
         self.field = np.array(field.get_field_by_key('2025').get("Field"))
 
-        self.index = 1
+        self.index = 0
 
         self.color = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (255, 0, 0)]
 
@@ -39,7 +39,7 @@ class Image_Processing:
                 break
 
             results = detector.detect(frame)
-
+            tag = []
             
             if results != []:
                 for result in results:
@@ -63,7 +63,12 @@ class Image_Processing:
                                     case _:
                                         print("Unknown shape")
                             break
-
+                    
+                    tag.append(result.id)
+                    #上傳至networkTable
+                    networktables.update_numberArray(f"tag/{result.id}", result.corner.flatten())
+            
+            networktables.update_numberArray("tag/tags", tag)
             # Show the frame
             cv2.imshow('AprilTag Detection', frame)
 
