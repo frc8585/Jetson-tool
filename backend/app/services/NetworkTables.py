@@ -28,3 +28,10 @@ class NetworkTables:
 
     def update(self, title, value):
         self.table.putValue(title, value)
+
+    def close(self):
+        self.test.set(False)
+        self.test.close()
+        self.inst.stopClient()
+        self.inst.stopDSClient()
+        self.inst.stopServer()
