@@ -4,6 +4,7 @@ import robotpy_apriltag as apriltag
 from threading import Thread, Event
 
 from app.services import detector, data_processor
+from app.utils import camera_tool
 from config import Field
 
 class Image_Processing:
@@ -22,6 +23,10 @@ class Image_Processing:
 
         self.running_event = Event()
         self.thread = None
+
+        cameras = camera_tool.get_all_camera()
+        print(cameras)
+        
 
     def _run(self):
         cap = cv2.VideoCapture(self.index)
