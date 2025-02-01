@@ -3,6 +3,9 @@ import json
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
+from app.models.Camera import Camera, Config
+from app.utils import camera_tool
+
 load_dotenv()
 
 class Settings(BaseSettings):
@@ -24,26 +27,27 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+@staticmethod
 class Camera:
     def __init__(self):
         # 使用 os.path.join 構建跨平台路徑
         self.camera_json_path = os.path.join('backend', 'public', 'camera', 'camera.json')
         with open(self.camera_json_path, 'r') as jsonFile:
-            self.__camera = json.load(jsonFile)
+            self.__cameras = json.load(jsonFile)
 
     def get_all_camera(self):
-        return self.__camera
+        cameras = []
+        for value in self.__cameras.items():
+            cameras.append(camera_tool.dict_to_camera(value))
     
-    def remove_camera(self, camera):
-        if camera in self.__camera:
-            self.__camera.remove(camera)
-        with open(self.camera_json_path, 'w') as jsonFile:
-            json.dump(self.__camera, jsonFile)
+    def get_camera_by_id(self, id):
+        return camera_tool.dict_to_camera(self.__cameras.get(id)) if self.__cameras.get(id) else None
 
-    def add_camera(self, camera):
-        self.__camera.append(camera)
+    def add_camera(self, camera: Camera):
+        self.__cameras[camera.id] = camera.to_dict()
         with open(self.camera_json_path, 'w') as jsonFile:
-            json.dump(self.__camera, jsonFile)
+            json.dump(self.__cameras, jsonFile)
+        return "success"
 
 class Field:
     def __init__(self):

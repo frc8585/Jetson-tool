@@ -22,11 +22,7 @@ class Image_Processing:
         self.latest_data = None
 
         self.running_event = Event()
-        self.thread = None
-
-        cameras = camera_tool.get_all_camera()
-        print(cameras)
-        
+        self.thread = None       
 
     def _run(self):
         cap = cv2.VideoCapture(self.index)

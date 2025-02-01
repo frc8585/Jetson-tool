@@ -1,2 +1,2 @@
-from app.utils.Camera import Camera
-camera_tool = Camera()
+from app.utils.Camera import Camera_tool
+camera_tool = Camera_tool()
