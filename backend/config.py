@@ -4,7 +4,6 @@ from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
 from app.models.Camera import Camera, Config
-from app.utils import camera_tool
 
 load_dotenv()
 
@@ -28,7 +27,7 @@ class Settings(BaseSettings):
 settings = Settings()
 
 @staticmethod
-class Camera:
+class Camera_Config:
     def __init__(self):
         # 使用 os.path.join 構建跨平台路徑
         self.camera_json_path = os.path.join('backend', 'public', 'camera', 'camera.json')
@@ -38,10 +37,10 @@ class Camera:
     def get_all_camera(self):
         cameras = []
         for value in self.__cameras.items():
-            cameras.append(camera_tool.dict_to_camera(value))
+            cameras.append(value)
     
     def get_camera_by_id(self, id):
-        return camera_tool.dict_to_camera(self.__cameras.get(id)) if self.__cameras.get(id) else None
+        return self.__cameras.get(id) if self.__cameras.get(id) else None
 
     def add_camera(self, camera: Camera):
         self.__cameras[camera.id] = camera.to_dict()

@@ -1,1 +1,1 @@
-{"ROOT\\MEDIA\\0001": {"index": 1, "name": "DroidCam Video", "id": "ROOT\\MEDIA\\0001", "config": {"K": ["test4"], "postion": ["test5"], "orientation": ["test6"]}}}
+{"ROOT\\MEDIA\\0001": {"index": 1, "name": "DroidCam Source 3", "id": "ROOT\\MEDIA\\0001", "config": {"isenable": true, "K": [[0, 0, 0], [0, 0, 0], [0, 0, 0]], "postion": [[0, 0, 0]], "orientation": [[0, 0, 0]]}}}

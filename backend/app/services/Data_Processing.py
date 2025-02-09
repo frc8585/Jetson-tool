@@ -45,19 +45,22 @@ class Robot:
         }
 
 class Data:
-    def __init__(self, robot=None, tag=None, game_piece=None):
+    def __init__(self, robot=None, tags=None, game_piece=None):
         self.robot = robot
-        self.tag = tag if tag is not None else []
+        self.tag = tags if tags is not None else {}
         self.game_piece = game_piece if game_piece is not None else []
     def clear(self):
         self.robot = None
-        self.tag.clear()
+        self.tag = {}
         self.game_piece.clear()
 
     def to_dict(self):
+        tags = {}
+        for index, tag in self.tag:
+            tags[index] = tag.to_dict()
         return {
             "robot": self.robot.to_dict() if self.robot else None,
-            "tag": [t.to_dict() for t in self.tag],
+            "tag": {tags},
             "game_piece": [g.to_dict() for g in self.game_piece]
         }
 
@@ -83,31 +86,32 @@ class Data_Processor:
         return self.__latest_data
 
 
-    def upload_tag(self, data):
-        self.__latest_data.tag = data
+    def upload_tag(self, data, index):
+        self.__latest_data.tag[index] = data
         self.processing()
 
     def processing(self):
         
         # 從tag計算機器資料
         data = []
-        for tag in self.__latest_data.tag:
+        for index, tags in self.__latest_data.tag.items():
+            for tag in tags:
 
-            _, rvec, tvec = cv2.solvePnP(self.tags_points[tag.id], tag.corner, self.K, None)
-            R, _ = cv2.Rodrigues(rvec)
+                _, rvec, tvec = cv2.solvePnP(self.tags_points[tag.id], tag.corner, self.K, None)
+                R, _ = cv2.Rodrigues(rvec)
 
-            camera_position = -np.dot(R.T, tvec)
+                camera_position = -np.dot(R.T, tvec)
 
-            pitch = np.arcsin(R[2][0])
-            yaw = np.arctan2(R[1][0], R[0][0])
-            roll = np.arctan2(R[2][1], R[2][2])
+                pitch = np.arcsin(R[2][0])
+                yaw = np.arctan2(R[1][0], R[0][0])
+                roll = np.arctan2(R[2][1], R[2][2])
 
-            data.append(Robot(
-                position=camera_position,
-                orientation=[pitch, yaw, roll],
-                revc=rvec,
-                tvec=tvec
-            ))
+                data.append(Robot(
+                    position=camera_position,
+                    orientation=[pitch, yaw, roll],
+                    revc=rvec,
+                    tvec=tvec
+                ))
 
         # 平均結果
         if data:

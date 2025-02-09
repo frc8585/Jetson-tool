@@ -1,12 +1,14 @@
 import numpy as np
 
 class Config:
-    def __init__(self, K, postion, orientation):
+    def __init__(self, K, postion, orientation, isenable=False):
+        self.isenable = isenable
         self.K = K
         self.postion = postion
         self.orientation = orientation
     def to_dict(self):
         return {
+            "isenable": self.isenable,
             "K": self.K,
             "postion": self.postion,
             "orientation": self.orientation
