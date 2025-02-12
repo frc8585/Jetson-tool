@@ -55,7 +55,10 @@ async def websocket_endpoint(websocket: WebSocket, camera_id: str):
 # 獲取所有相機
 @camera_routes.get("/get_camera")
 async def get_camera():
-    return camera_tool.get_all_camera()
+    l = camera_tool.get_all_camera()
+    for i, v in enumerate(l):
+        l[i] = v.to_dict()
+    return l
 
 # 設定相機設定
 class setCamera(BaseModel):

@@ -9,9 +9,9 @@ class Config:
     def to_dict(self):
         return {
             "isenable": self.isenable,
-            "K": self.K,
-            "postion": self.postion,
-            "orientation": self.orientation
+            "K": self.K.tolist(),
+            "postion": self.postion.tolist(),
+            "orientation": self.orientation.tolist()
         }
 
 class Camera:
