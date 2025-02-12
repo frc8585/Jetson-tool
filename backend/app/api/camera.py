@@ -1,4 +1,5 @@
 import asyncio
+import cv2
 from fastapi import APIRouter, WebSocket
 from pydantic import BaseModel
 import json
@@ -39,10 +40,12 @@ async def websocket_endpoint(websocket: WebSocket, camera_id: str):
             
         while True:
             # 直接從相機工具獲取編碼後的畫面
-            frame = camera.get_encoded_frame()  # 假設相機物件有此方法
+            frame = image_processing.get_frame(camera.index)  # 假設相機物件有此方法
+
             if frame is not None:
-                await websocket.send_text(frame)
-            await asyncio.sleep(0.1)  # 10 FPS
+                _, buffer = cv2.imencode('.jpg', frame)
+                await websocket.send_bytes(buffer.tobytes())
+            await asyncio.sleep(0.03)  # 10 FPS
             
     except Exception as e:
         print(f"WebSocket error: {e}")

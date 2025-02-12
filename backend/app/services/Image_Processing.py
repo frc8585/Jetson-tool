@@ -42,7 +42,7 @@ class Image_Processing:
                 self.camera_list.append(camera)
 
     def get_frame(self, index):
-        return self.frames[index] if index in self.frames.keys() else None
+        return self.frames[index]
 
     def image_processing(self, index):
         cap = cv2.VideoCapture(index)
