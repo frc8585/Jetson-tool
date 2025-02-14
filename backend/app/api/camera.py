@@ -1,6 +1,7 @@
 import asyncio
 import cv2
 from fastapi import APIRouter, WebSocket
+import numpy as np
 from pydantic import BaseModel
 import json
 import threading
@@ -74,7 +75,7 @@ class setCamera(BaseModel):
 @camera_routes.post("/set_camera")
 async def set_camera(set_camera: setCamera):
     camera = camera_tool.get_camera_by_id(set_camera.id)
-    camera.config = Config(set_camera.K, set_camera.postion, set_camera.orientation)
+    camera.config = Config(np.array(set_camera.K), np.array(set_camera.postion), np.array(set_camera.orientation))
     camera.config.isenable = set_camera.isenable
     result = camera_config.add_camera(camera)
     #刷新影像處理相機設定
@@ -91,5 +92,8 @@ class Calibrate_config(BaseModel):
 @camera_routes.post("/calibrate")
 async def calibrate(calibrate_config: Calibrate_config):
     camera = camera_tool.get_camera_by_id(calibrate_config.id)
-    camera_tool.calibrate(camera, calibrate_config.row, calibrate_config.col, calibrate_config.size)
-    return camera_config.add_camera(camera)
+    K, dist_coeffs, mean_error = image_processing.calibrate(camera.index, calibrate_config.row, calibrate_config.col, calibrate_config.size)
+
+    camera.config.K = K
+    camera_config.add_camera(camera)
+    return K, dist_coeffs, mean_error
