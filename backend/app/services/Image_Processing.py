@@ -16,7 +16,7 @@ class Image_Processing:
 
         self.field = np.array(field.get_field_by_key('2025').get("Field"))
 
-        self.camera_list = []
+        self.camera_list = {}
         self.frames = {}
 
         self.color = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (255, 0, 0)]
@@ -32,25 +32,35 @@ class Image_Processing:
         # 開始處理影像
         self.running_event.set()
         while self.running_event.is_set():
-            for camera in self.camera_list:
-                self.image_processing(camera.index)
-            cv2.waitKey(10)
+
+            for index, cap in self.camera_list.items():
+                self.image_processing(index, cap)
+            time.sleep(0.001)
+            
 
     def reload_camera(self):
+        print("loading camera")
+        for cap in self.camera_list.values():
+            cap.release()
         self.camera_list.clear()
         for camera in camera_tool.get_all_camera():
             if camera.config and camera.config.isenable:
-                self.camera_list.append(camera)
+                cap = cv2.VideoCapture(camera.index)
+                if cap.isOpened():
+                    self.camera_list[camera.index] = cap
+        print("load camera success")
 
     def get_frame(self, index):
         return self.frames[index]
-
-    def image_processing(self, index):
-        cap = cv2.VideoCapture(index)
-
-        if not cap.isOpened():
-            print("無法打開相機")
+    
+    def put_frame(self, index, frame, calibrate=False):
+        if index in self.frames and not calibrate:
+            self.temp_frames[index] = frame
             return
+        self.frames[index] = frame
+        
+
+    def image_processing(self, index, cap):
 
         ret, frame = cap.read()
         if not ret:
@@ -86,11 +96,7 @@ class Image_Processing:
                         break
 
         # 儲存處理過的影像
-        self.frames[index] = frame
-                
-
-        cap.release()
-        cv2.destroyAllWindows()
+        self.put_frame(index, frame)
 
     def draw_circle(self, frame, center, radius, normal_vector, color=(0, 255, 0), thickness=2):
         center = np.array(center).astype(np.float64)
