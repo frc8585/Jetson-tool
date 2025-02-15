@@ -1,4 +1,5 @@
 import asyncio
+import cv2
 from fastapi import APIRouter, WebSocket
 import numpy as np
 from pydantic import BaseModel
@@ -40,10 +41,12 @@ async def websocket_endpoint(websocket: WebSocket, camera_id: str):
             
         while True:
             # 直接從相機工具獲取編碼後的畫面
-            frame = camera.get_encoded_frame()  # 假設相機物件有此方法
+            frame = image_processing.get_frame(camera.index)  # 假設相機物件有此方法
+
             if frame is not None:
-                await websocket.send_text(frame)
-            await asyncio.sleep(0.1)  # 10 FPS
+                _, buffer = cv2.imencode('.jpg', frame)
+                await websocket.send_bytes(buffer.tobytes())
+            await asyncio.sleep(0.03)  # 10 FPS
             
     except Exception as e:
         print(f"WebSocket error: {e}")
@@ -56,11 +59,10 @@ async def websocket_endpoint(websocket: WebSocket, camera_id: str):
 # 獲取所有相機
 @camera_routes.get("/get_camera")
 async def get_camera():
-    cameras = []
-    for camera in  camera_tool.get_all_camera():
-        cameras.append(camera.to_dict())
-    return cameras
-    
+    l = camera_tool.get_all_camera()
+    for i, v in enumerate(l):
+        l[i] = v.to_dict()
+    return l
 
 # 設定相機設定
 class setCamera(BaseModel):
@@ -90,5 +92,8 @@ class Calibrate_config(BaseModel):
 @camera_routes.post("/calibrate")
 async def calibrate(calibrate_config: Calibrate_config):
     camera = camera_tool.get_camera_by_id(calibrate_config.id)
-    camera_tool.calibrate(camera, calibrate_config.row, calibrate_config.col, calibrate_config.size)
-    return camera_config.add_camera(camera)
+    K, dist_coeffs, mean_error = image_processing.calibrate(camera.index, calibrate_config.row, calibrate_config.col, calibrate_config.size)
+
+    camera.config.K = K
+    camera_config.add_camera(camera)
+    return K, dist_coeffs, mean_error
