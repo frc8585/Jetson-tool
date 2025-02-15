@@ -1,5 +1,6 @@
 import asyncio
 from fastapi import APIRouter, WebSocket
+import numpy as np
 from pydantic import BaseModel
 import json
 import threading
@@ -55,7 +56,11 @@ async def websocket_endpoint(websocket: WebSocket, camera_id: str):
 # 獲取所有相機
 @camera_routes.get("/get_camera")
 async def get_camera():
-    return camera_tool.get_all_camera()
+    cameras = []
+    for camera in  camera_tool.get_all_camera():
+        cameras.append(camera.to_dict())
+    return cameras
+    
 
 # 設定相機設定
 class setCamera(BaseModel):
@@ -68,7 +73,7 @@ class setCamera(BaseModel):
 @camera_routes.post("/set_camera")
 async def set_camera(set_camera: setCamera):
     camera = camera_tool.get_camera_by_id(set_camera.id)
-    camera.config = Config(set_camera.K, set_camera.postion, set_camera.orientation)
+    camera.config = Config(np.array(set_camera.K), np.array(set_camera.postion), np.array(set_camera.orientation))
     camera.config.isenable = set_camera.isenable
     result = camera_config.add_camera(camera)
     #刷新影像處理相機設定
