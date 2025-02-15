@@ -96,7 +96,8 @@ class Data_Processor:
         data = []
         for index, tags in self.__latest_data.tag.items():
             for tag in tags:
-
+                if tag.id not in self.tags_points:
+                    continue
                 _, rvec, tvec = cv2.solvePnP(self.tags_points[tag.id], tag.corner, self.K, None)
                 R, _ = cv2.Rodrigues(rvec)
 
