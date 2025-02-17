@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Image Display</title>
+</head>
+<body>
+    <h1>WebSocket Image Display</h1>
+    <img id="image" src="" alt="WebSocket Image" style="max-width: 100%; height: auto;">
+    <script>
+        // 假设 cameraId 是一个全局变量或从其他地方获取的变量
+        const cameraId = 'your-camera-id'; // 请替换为实际的 camera.id
+
+        const ws = new WebSocket(`ws://localhost:8080/api/camera/ws/${cameraId}`);
+
+        ws.onopen = () => {
+            console.log('WebSocket connection opened');
+        };
+
+        ws.onmessage = (event) => {
+            const imageElement = document.getElementById('image');
+            imageElement.src = 'data:image/jpeg;base64,' + event.data;
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+
+        ws.onclose = () => {
+            console.log('WebSocket connection closed');
+        };
+    </script>
+</body>
+</html>
