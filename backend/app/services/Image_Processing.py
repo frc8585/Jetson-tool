@@ -4,7 +4,7 @@ import numpy as np
 import robotpy_apriltag as apriltag
 from threading import Thread, Event
 
-from app.services import detector, data_processor
+from app.services import detector, data_processor, zed
 from app.utils import camera_tool
 from config import Field
 
@@ -35,7 +35,9 @@ class Image_Processing:
         # 開始處理影像
         self.running_event.set()
         while self.running_event.is_set():
-
+            # 處理ZED相機
+            zed.ImageProcessing()
+            # 處理一般相機
             for index, cap in self.camera_list.items():
                 self.image_processing(index, cap)
             time.sleep(0.001)
@@ -43,6 +45,10 @@ class Image_Processing:
 
     def reload_camera(self):
         print("loading camera")
+        #重新開啟zed相機
+        zed.CloseCamera()
+        zed.OpenCamera()
+
         for cap in self.camera_list.values():
             cap.release()
         self.camera_list.clear()

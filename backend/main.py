@@ -17,7 +17,7 @@ app = FastAPI(
     version=settings.APP_VERSION  # 從配置中讀取應用版本
 )
 
-from app.services import image_processing
+from app.services import image_processing, zed
 
 async def startup_tasks(app):
     print("app Start")
@@ -27,6 +27,7 @@ async def startup_tasks(app):
 async def shutdown_tasks(app):
     print("app Close")
     image_processing.stop()
+    zed.CloseCamera()
     print("app Close down")
     # 可清理資料庫或其他資源
 
