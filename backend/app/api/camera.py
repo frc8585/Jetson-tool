@@ -1,10 +1,11 @@
 import asyncio
 import cv2
-from fastapi import APIRouter, WebSocket
+from fastapi import APIRouter, WebSocket, HTTPException
 import numpy as np
 from pydantic import BaseModel
 import json
 import threading
+import requests
 
 from app.utils import camera_tool
 from config import Camera_Config
@@ -41,12 +42,12 @@ async def websocket_endpoint(websocket: WebSocket, camera_id: str):
             
         while True:
             # 直接從相機工具獲取編碼後的畫面
-            frame = image_processing.get_frame(camera.index)  # 假設相機物件有此方法
+            frame = image_processing.get_frame(camera.index)
 
             if frame is not None:
                 _, buffer = cv2.imencode('.jpg', frame)
                 await websocket.send_bytes(buffer.tobytes())
-            await asyncio.sleep(0.03)  # 10 FPS
+            await asyncio.sleep(0.03)
             
     except Exception as e:
         print(f"WebSocket error: {e}")
@@ -88,12 +89,20 @@ class Calibrate_config(BaseModel):
     row: int
     col: int
     size: float # mm
+    callback_url: str
 
 @camera_routes.post("/calibrate")
 async def calibrate(calibrate_config: Calibrate_config):
     camera = camera_tool.get_camera_by_id(calibrate_config.id)
-    K, dist_coeffs, mean_error = image_processing.calibrate(camera.index, calibrate_config.row, calibrate_config.col, calibrate_config.size)
+    if camera is None:
+        raise HTTPException(status_code=404, detail="Camera not found")
+    
+    def callback(result):
+        try:
+            response = requests.post(calibrate_config.callback_url, json=result)
+            response.raise_for_status()
+        except requests.RequestException as e:
+            print(f"Failed to send calibration result: {e}")
 
-    camera.config.K = K
-    camera_config.add_camera(camera)
-    return K, dist_coeffs, mean_error
+    return image_processing.start_calibrate(camera.index, calibrate_config.row, calibrate_config.col, calibrate_config.size, callback=callback)
+

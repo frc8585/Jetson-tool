@@ -17,6 +17,9 @@ class Image_Processing:
         self.field = np.array(field.get_field_by_key('2025').get("Field"))
 
         self.camera_list = {}
+
+        self.calibrate_camera = []
+        self.temp_frames = {}
         self.frames = {}
 
         self.color = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (255, 0, 0)]
@@ -54,7 +57,7 @@ class Image_Processing:
         return self.frames[index]
     
     def put_frame(self, index, frame, calibrate=False):
-        if index in self.frames and not calibrate:
+        if index in self.calibrate_camera and not calibrate:
             self.temp_frames[index] = frame
             return
         self.frames[index] = frame
@@ -63,6 +66,7 @@ class Image_Processing:
     def image_processing(self, index, cap):
 
         ret, frame = cap.read()
+
         if not ret:
             print("無法讀取影像")
             return
@@ -82,18 +86,19 @@ class Image_Processing:
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                 
                 #繪製場地
-                for field in self.field:
-                    
-                    if result.id in field["Tags"]:
-                        for name,child in field["child"].items():
-                            match child["shape"]:
-                                case "rectangle":
-                                    cv2.rectangle(frame, (child["x"], child["y"]), (child["x"] + child["w"], child["y"] + child["h"]), (0, 255, 0), 2)
-                                case "circle":
-                                    self.draw_circle(frame, child["center"], child["r"], child["normal"], (0, 255, 0), 2)
-                                case _:
-                                    print("Unknown shape")
-                        break
+                if data_processor.get_latest_data().robot:
+                    for field in self.field:
+                        
+                        if result.id in field["Tags"]:
+                            for name,child in field["child"].items():
+                                match child["shape"]:
+                                    case "rectangle":
+                                        cv2.rectangle(frame, (child["x"], child["y"]), (child["x"] + child["w"], child["y"] + child["h"]), (0, 255, 0), 2)
+                                    case "circle":
+                                        self.draw_circle(frame, child["center"], child["r"], child["normal"], (0, 255, 0), 2)
+                                    case _:
+                                        print("Unknown shape")
+                            break
 
         # 儲存處理過的影像
         self.put_frame(index, frame)
@@ -119,27 +124,35 @@ class Image_Processing:
         self.running_event.clear()
         if self.thread is not None:
             self.thread.join()
+        for cap in self.camera_list.values():
+            cap.release()
         cv2.destroyAllWindows()
     
-        # 相機標定
+    def start_calibrate(self, camera_index, checker_row, checker_col, square_size, num_images=20, capture_interval=2, callback=None):
+        self.calibrate_thread = Thread(target=self.calibrate, args=(camera_index, checker_row, checker_col, square_size, num_images, capture_interval, callback))
+        self.calibrate_thread.start()
+        return True
 
-    def calibrate(self, camera_index, checker_row, checker_col, square_size, num_images=20, capture_interval=2):
+    # 相機標定
+    def calibrate(self, camera_index, checker_row, checker_col, square_size, num_images=20, capture_interval=2, callback=None):
         """
         相機標定函式
          
         Parameters:
         camera_index (int): 相機索引
-        checker_row (int): 棋盤格行數
-        checker_col (int): 棋盤格列數
+        checker_row (int): 棋盤格每列交點數(幾行交點)
+        checker_col (int): 棋盤格每行交點數(幾列交點)
         square_size (float): 棋盤格方格尺寸(公分)
         num_images (int): 要捕捉的圖片數量
         capture_interval (float): 捕捉圖片的時間間隔(秒)
+        callback (function): 用於傳送標定結果的回調函式
         
         Returns:
         tuple: (camera_matrix, dist_coeffs, mean_error) 若成功
             (None, None, None) 若失敗
         """
         # 準備校正板的三維點
+        self.calibrate_camera.append(camera_index)
         objp = np.zeros((checker_row * checker_col, 3), np.float32)
         objp[:, :2] = np.mgrid[0:checker_row, 0:checker_col].T.reshape(-1, 2) * square_size
 
@@ -149,16 +162,23 @@ class Image_Processing:
         image_size = None
 
         captured_count = 0
+
         last_capture_time = time.time()
 
+        print("開始標定")
         # 捕捉圖片
         while captured_count < num_images:
-            frame = self.get_frame(camera_index)
+            frame = self.temp_frames.get(camera_index)
+
+            if frame is None:
+                time.sleep(0.1)
+                continue
 
             if image_size is None:
                 image_size = (frame.shape[1], frame.shape[0])
 
             current_time = time.time()
+
             if current_time - last_capture_time < capture_interval:
                 continue
 
@@ -174,16 +194,22 @@ class Image_Processing:
                 last_capture_time = current_time
                 print(f"捕捉到第 {captured_count}/{num_images} 張影像")
 
+            self.put_frame(camera_index, frame, calibrate=True)
             cv2.imshow('Calibration', frame)
+
             key = cv2.waitKey(1)
             if key == 27:  # ESC鍵退出
                 break
-            print(1)
 
         cv2.destroyAllWindows()
+        print("標定結束")
+
+        self.calibrate_camera.remove(camera_index)
 
         if captured_count < num_images:
             print("未捕捉到足夠的影像進行標定")
+            if callback:
+                callback({"status": "error", "message": "未捕捉到足夠的影像進行標定"})
             return None, None, None
 
         # 進行相機標定
@@ -193,6 +219,8 @@ class Image_Processing:
 
         if not ret:
             print("標定失敗！")
+            if callback:
+                callback({"status": "error", "message": "標定失敗"})
             return None, None, None
 
         # 計算重投影誤差
@@ -213,5 +241,13 @@ class Image_Processing:
         print(f"相機矩陣：\n{camera_matrix}")
         print(f"畸變係數：\n{dist_coeffs}")
         print(f"平均重投影誤差: {mean_error} 像素")
+
+        if callback:
+            callback({
+                "status": "success",
+                "camera_matrix": camera_matrix.tolist(),
+                "dist_coeffs": dist_coeffs.tolist(),
+                "mean_error": mean_error
+            })
 
         return camera_matrix, dist_coeffs, mean_error
