@@ -48,6 +48,7 @@ class Camera_Config:
             json.dump(self.__cameras, jsonFile)
         return "success"
 
+@staticmethod
 class Field:
     def __init__(self):
         self.__field = {}

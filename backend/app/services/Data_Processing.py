@@ -96,7 +96,8 @@ class Data_Processor:
         data = []
         for index, tags in self.__latest_data.tag.items():
             for tag in tags:
-
+                if tag.id not in self.tags_points:
+                    continue
                 _, rvec, tvec = cv2.solvePnP(self.tags_points[tag.id], tag.corner, self.K, None)
                 R, _ = cv2.Rodrigues(rvec)
 
@@ -119,7 +120,8 @@ class Data_Processor:
             avg_orientation = np.mean([d.orientation for d in data], axis=0)
             self.__latest_data.robot = Robot(position=avg_position, orientation=avg_orientation, revc=rvec, tvec=tvec)
         else:
-            self.__latest_data.robot = None
+            # 使用陀螺儀計算
+            pass
         
         # 計算GamePiece資料
 
