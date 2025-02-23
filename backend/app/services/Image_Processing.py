@@ -131,6 +131,7 @@ class Image_Processing:
 
     def stop(self):
         zed.CloseCamera()
+        print("Close Camera")
         cv2.destroyAllWindows()
         print("Close Camera")
         self.running_event.clear()

@@ -70,10 +70,7 @@ class Zed:
         return False
     
     def CloseCamera(self):
-        print("Close Camera")
         self.zed.close()
-        print("Close Camera Success")
-        cv2.destroyAllWindows()
 
     def ImageProcessing(self):
         # 取得影像
@@ -106,7 +103,6 @@ class Zed:
 
                     #繪製場地
                     if data_processor.get_latest_data().robot:
-                        print("Draw field")
                         for field in self.field:
                             
                             if result.id in field["Tags"]:
