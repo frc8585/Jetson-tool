@@ -1,5 +1,6 @@
 import sys
 import os
+import cv2
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
@@ -27,7 +28,7 @@ async def startup_tasks(app):
 async def shutdown_tasks(app):
     print("app Close")
     image_processing.stop()
-    zed.CloseCamera()
+    cv2.destroyAllWindows()
     print("app Close down")
     # 可清理資料庫或其他資源
 

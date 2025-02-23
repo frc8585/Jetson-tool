@@ -40,6 +40,8 @@ class Image_Processing:
             # 處理一般相機
             for index, cap in self.camera_list.items():
                 self.image_processing(index, cap)
+
+            data_processor.processing()
             time.sleep(0.001)
             
 
@@ -48,6 +50,7 @@ class Image_Processing:
         #重新開啟zed相機
         zed.CloseCamera()
         zed.OpenCamera()
+        zed.Setting()
 
         for cap in self.camera_list.values():
             cap.release()
@@ -127,12 +130,15 @@ class Image_Processing:
             self.thread.start()
 
     def stop(self):
+        zed.CloseCamera()
+        cv2.destroyAllWindows()
+        print("Close Camera")
         self.running_event.clear()
         if self.thread is not None:
             self.thread.join()
         for cap in self.camera_list.values():
             cap.release()
-        cv2.destroyAllWindows()
+
     
     def start_calibrate(self, camera_index, checker_row, checker_col, square_size, num_images=20, capture_interval=2, callback=None):
         self.calibrate_thread = Thread(target=self.calibrate, args=(camera_index, checker_row, checker_col, square_size, num_images, capture_interval, callback))

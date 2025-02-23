@@ -41,6 +41,11 @@ class Camera_Config:
     
     def get_camera_by_id(self, id):
         return self.__cameras.get(id) if self.__cameras.get(id) else None
+    
+    def get_camera_by_index(self, index):
+        for camera in self.__cameras.values():
+            if camera.get("index") == index:
+                return Camera(**camera)
 
     def add_camera(self, camera: Camera):
         self.__cameras[camera.id] = camera.to_dict()
