@@ -3,7 +3,7 @@ import numpy as np
 import json
 import robotpy_apriltag as apriltag
 
-from config import Field
+from config import Field, Camera_Config
 
 class Tag:
     def __init__(self, id, corner):
@@ -88,15 +88,19 @@ class Data_Processor:
 
     def upload_tag(self, data, index):
         self.__latest_data.tag[index] = data
-        self.processing()
 
     def processing(self):
         
         # 從tag計算機器資料
         data = []
         for index, tags in self.__latest_data.tag.items():
+            if not Camera_Config().get_camera_by_index(index):
+                continue
+            if not Camera_Config().get_camera_by_index(index).config:
+                print(f"Camera {index} does not have config")
+                continue
             for tag in tags:
-                if tag.id not in self.tags_points:
+                if tag.id > len(self.tags_points):
                     continue
                 _, rvec, tvec = cv2.solvePnP(self.tags_points[tag.id], tag.corner, self.K, None)
                 R, _ = cv2.Rodrigues(rvec)
