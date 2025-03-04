@@ -36,10 +36,14 @@ class Image_Processing:
         self.running_event.set()
         while self.running_event.is_set():
             # 處理ZED相機
-            zed.ImageProcessing()
+            frame = zed.get_frame("right")
+            self.image_processing("zed_right", frame)
             # 處理一般相機
             for index, cap in self.camera_list.items():
-                self.image_processing(index, cap)
+                frame = self.get_frame_from_camera(cap)
+                if frame is None:
+                    continue
+                self.image_processing(index, frame)
             time.sleep(0.001)
             
 
@@ -67,18 +71,18 @@ class Image_Processing:
             self.temp_frames[index] = frame
             return
         self.frames[index] = frame
-        
 
-    def image_processing(self, index, cap):
-
+    def get_frame_from_camera(self, cap):
         ret, frame = cap.read()
-
         if not ret:
             print("無法讀取影像")
-            return
+            return None
+        return frame
+        
+
+    def image_processing(self, index, frame):
 
         results = detector.detect(frame, index)
-
         
         if results != []:
             for result in results:
@@ -105,6 +109,7 @@ class Image_Processing:
                                     case _:
                                         print("Unknown shape")
                             break
+
 
         # 儲存處理過的影像
         self.put_frame(index, frame)

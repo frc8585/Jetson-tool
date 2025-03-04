@@ -43,6 +43,20 @@ class Camera_tool:
                     isenable = config["isenable"]
                 )
 
+        camera_info.append(Camera(
+            index = "zed_left",
+            name = "zed_left",
+            id = "zed_left",
+            config = None
+        ))
+
+        camera_info.append(Camera(
+            index = "zed_right",
+            name = "zed_right",
+            id = "zed_right",
+            config = None
+        ))
+
         graph.stop()
 
         return camera_info
