@@ -1,11 +1,8 @@
-import wmi
 import cv2
 import numpy as np
 import time
-import pythoncom
 import platform
 
-from pygrabber.dshow_graph import FilterGraph
 from app.models.Camera import Camera, Config
 from config import Camera_Config
 
@@ -16,6 +13,9 @@ class Camera_tool:
         system = platform.system()
 
         if system == "Windows":
+            import wmi, pythoncom
+            from pygrabber.dshow_graph import FilterGraph
+
             pythoncom.CoInitialize()
             w = wmi.WMI()
             graph = FilterGraph()
@@ -51,7 +51,7 @@ class Camera_tool:
         elif system == "Linux":
             import subprocess
 
-            result = subprocess.run(['v4l2-ctl', '--list-devices'], stdout=subprocess.PIPE)
+            result = subprocess.run('v4l2-ctl --list-devices', shell=True, stdout=subprocess.PIPE)
             devices = result.stdout.decode().split('\n\n')
             for index, device in enumerate(devices):
                 lines = device.split('\n')

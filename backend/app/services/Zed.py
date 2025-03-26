@@ -71,7 +71,7 @@ class Zed:
 
     def get_frame(self, view):
         if not self.zed.is_opened():
-            print("Error: Camera is not opened")
+            # print("Error: ZED is not opened")
             return None
 
         if self.zed.grab() == sl.ERROR_CODE.SUCCESS:

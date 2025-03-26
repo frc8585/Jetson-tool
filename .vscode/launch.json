@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "name": "Docker: Python - Fastapi",
+            "type": "docker",
+            "request": "launch",
+            "preLaunchTask": "docker-run: debug",
+            "dockerRun": {
+                "image": "jetson:",  // 替換為您的 Docker image 名稱
+                "options": [
+                    "--gpus", "all"  // 啟用 GPU 支援
+                ]
+            },
+            "python": {
+                "pathMappings": [
+                    {
+                        "localRoot": "${workspaceFolder}",
+                        "remoteRoot": "/app"
+                    }
+                ],
+                "projectType": "fastapi"
+            }
+        }
+    ]
+}

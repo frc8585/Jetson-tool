@@ -37,6 +37,8 @@ class Image_Processing:
         while self.running_event.is_set():
             # 處理ZED相機
             frame = zed.get_frame("right")
+            if frame is None:
+                continue
             self.image_processing("zed_right", frame)
             # 處理一般相機
             for index, cap in self.camera_list.items():
