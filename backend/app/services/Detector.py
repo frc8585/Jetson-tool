@@ -12,23 +12,12 @@ class Detector:
         field = Field()
         self.tags_points = np.array(field.get_field_by_key('2025').get("Tags"), dtype=np.float64)
 
-        self.fx = 514.6338686934114
-        self.fy = 515.6938267958315
-        self.cx = 312.9011223681166
-        self.cy = 228.9001964935265
-
-        self.K = np.array([
-            [self.fx, 0, self.cx],
-            [0, self.fy, self.cy],
-            [0, 0, 1]
-        ])
-
         self.detector = apriltag.AprilTagDetector()
         self.detector.addFamily("tag36h11")
 
         self.__data =  np.array([], dtype=Tag)
 
-    def detect(self, frame):
+    def detect(self, frame, index):
         self.__data = []
         
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -55,7 +44,7 @@ class Detector:
 
 
         # upload the data to Data_Processing
-        data_processor.upload_tag(self.__data)
+        data_processor.upload_tag(self.__data, index)
         # Return the results
         return self.__data
     

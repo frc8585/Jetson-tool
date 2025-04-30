@@ -1,9 +1,11 @@
+import time
 import cv2
 import numpy as np
 import robotpy_apriltag as apriltag
 from threading import Thread, Event
 
-from app.services import detector, data_processor
+from app.services import detector, data_processor, zed
+from app.utils import camera_tool
 from config import Field
 
 class Image_Processing:
@@ -14,43 +16,90 @@ class Image_Processing:
 
         self.field = np.array(field.get_field_by_key('2025').get("Field"))
 
-        self.index = 1
+        self.camera_list = {}
+
+        self.calibrate_camera = []
+        self.temp_frames = {}
+        self.frames = {}
 
         self.color = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (255, 0, 0)]
 
         self.latest_data = None
 
         self.running_event = Event()
-        self.thread = None
+        self.thread = None       
 
     def _run(self):
-        cap = cv2.VideoCapture(self.index)
+        self.reload_camera()
 
-        if not cap.isOpened():
-            print("無法打開相機")
-            return
-
+        # 開始處理影像
         self.running_event.set()
-
         while self.running_event.is_set():
-            ret, frame = cap.read()
-            if not ret:
-                print("無法讀取影像")
-                break
-
-            results = detector.detect(frame)
-
+            # 處理ZED相機
+            frame = zed.get_frame("right")
+            if frame is None:
+                continue
+            self.image_processing("zed_right", frame)
+            # 處理一般相機
+            for index, cap in self.camera_list.items():
+                frame = self.get_frame_from_camera(cap)
+                if frame is None:
+                    continue
+                self.image_processing(index, frame)
+            time.sleep(0.001)
             
-            if results != []:
-                for result in results:
-                    for i in range(4):
-                        pt1 = np.round(result.corner[i]).astype(int)
-                        pt2 = np.round(result.corner[(i + 1) % 4]).astype(int)
-                        cv2.line(frame, tuple(pt1), tuple(pt2), self.color[i], 2)
 
-                    cv2.putText(frame, f"ID: {result.id}", (int(result.corner[0][0]), int(result.corner[0][1]) - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                    
+    def reload_camera(self):
+        print("loading camera")
+        #重新開啟zed相機
+        zed.CloseCamera()
+        zed.OpenCamera()
+        zed.Setting()
+
+        for cap in self.camera_list.values():
+            cap.release()
+        self.camera_list.clear()
+        for camera in camera_tool.get_all_camera():
+            if camera.config and camera.config.isenable:
+                cap = cv2.VideoCapture(camera.index)
+                if cap.isOpened():
+                    self.camera_list[camera.index] = cap
+        print("load camera success")
+
+    def get_frame(self, index):
+        return self.frames[index]
+    
+    def put_frame(self, index, frame, calibrate=False):
+        if index in self.calibrate_camera and not calibrate:
+            self.temp_frames[index] = frame
+            return
+        self.frames[index] = frame
+
+    def get_frame_from_camera(self, cap):
+        ret, frame = cap.read()
+        if not ret:
+            print("無法讀取影像")
+            return None
+        return frame
+        
+
+    def image_processing(self, index, frame):
+
+        results = detector.detect(frame, index)
+        
+        if results != []:
+            for result in results:
+                #繪製Tag邊界
+                for i in range(4):
+                    pt1 = np.round(result.corner[i]).astype(int)
+                    pt2 = np.round(result.corner[(i + 1) % 4]).astype(int)
+                    cv2.line(frame, tuple(pt1), tuple(pt2), self.color[i], 2)
+
+                cv2.putText(frame, f"ID: {result.id}", (int(result.corner[0][0]), int(result.corner[0][1]) - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                
+                #繪製場地
+                if data_processor.get_latest_data().robot:
                     for field in self.field:
                         
                         if result.id in field["Tags"]:
@@ -64,14 +113,9 @@ class Image_Processing:
                                         print("Unknown shape")
                             break
 
-            # Show the frame
-            cv2.imshow('AprilTag Detection', frame)
 
-            cv2.waitKey(1)
-                
-
-        cap.release()
-        cv2.destroyAllWindows()
+        # 儲存處理過的影像
+        self.put_frame(index, frame)
 
     def draw_circle(self, frame, center, radius, normal_vector, color=(0, 255, 0), thickness=2):
         center = np.array(center).astype(np.float64)
@@ -91,7 +135,137 @@ class Image_Processing:
             self.thread.start()
 
     def stop(self):
+        zed.CloseCamera()
+        print("Close Camera")
+        cv2.destroyAllWindows()
+        print("Close Camera")
         self.running_event.clear()
         if self.thread is not None:
             self.thread.join()
+        for cap in self.camera_list.values():
+            cap.release()
+
+    
+    def start_calibrate(self, camera_index, checker_row, checker_col, square_size, num_images=20, capture_interval=2, callback=None):
+        self.calibrate_thread = Thread(target=self.calibrate, args=(camera_index, checker_row, checker_col, square_size, num_images, capture_interval, callback))
+        self.calibrate_thread.start()
+        return True
+
+    # 相機標定
+    def calibrate(self, camera_index, checker_row, checker_col, square_size, num_images=20, capture_interval=2, callback=None):
+        """
+        相機標定函式
+         
+        Parameters:
+        camera_index (int): 相機索引
+        checker_row (int): 棋盤格每列交點數(幾行交點)
+        checker_col (int): 棋盤格每行交點數(幾列交點)
+        square_size (float): 棋盤格方格尺寸(公分)
+        num_images (int): 要捕捉的圖片數量
+        capture_interval (float): 捕捉圖片的時間間隔(秒)
+        callback (function): 用於傳送標定結果的回調函式
+        
+        Returns:
+        tuple: (camera_matrix, dist_coeffs, mean_error) 若成功
+            (None, None, None) 若失敗
+        """
+        # 準備校正板的三維點
+        self.calibrate_camera.append(camera_index)
+        objp = np.zeros((checker_row * checker_col, 3), np.float32)
+        objp[:, :2] = np.mgrid[0:checker_row, 0:checker_col].T.reshape(-1, 2) * square_size
+
+        # 儲存所有圖片的三維點和二維點
+        object_points = []
+        image_points = []
+        image_size = None
+
+        captured_count = 0
+
+        last_capture_time = time.time()
+
+        print("開始標定")
+        # 捕捉圖片
+        while captured_count < num_images:
+            frame = self.temp_frames.get(camera_index)
+
+            if frame is None:
+                time.sleep(0.1)
+                continue
+
+            if image_size is None:
+                image_size = (frame.shape[1], frame.shape[0])
+
+            current_time = time.time()
+
+            if current_time - last_capture_time < capture_interval:
+                continue
+
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            ret, corners = cv2.findChessboardCorners(gray, (checker_row, checker_col), None)
+
+            if ret:
+                object_points.append(objp)
+                image_points.append(corners)
+
+                cv2.drawChessboardCorners(frame, (checker_row, checker_col), corners, ret)
+                captured_count += 1
+                last_capture_time = current_time
+                print(f"捕捉到第 {captured_count}/{num_images} 張影像")
+
+            self.put_frame(camera_index, frame, calibrate=True)
+            cv2.imshow('Calibration', frame)
+
+            key = cv2.waitKey(1)
+            if key == 27:  # ESC鍵退出
+                break
+
         cv2.destroyAllWindows()
+        print("標定結束")
+
+        self.calibrate_camera.remove(camera_index)
+
+        if captured_count < num_images:
+            print("未捕捉到足夠的影像進行標定")
+            if callback:
+                callback({"status": "error", "message": "未捕捉到足夠的影像進行標定"})
+            return None, None, None
+
+        # 進行相機標定
+        ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
+            object_points, image_points, image_size, None, None
+        )
+
+        if not ret:
+            print("標定失敗！")
+            if callback:
+                callback({"status": "error", "message": "標定失敗"})
+            return None, None, None
+
+        # 計算重投影誤差
+        total_error = 0
+        total_points = 0
+        for i in range(len(object_points)):
+            imgpoints2, _ = cv2.projectPoints(
+                object_points[i], rvecs[i], tvecs[i], camera_matrix, dist_coeffs
+            )
+            error = cv2.norm(image_points[i], imgpoints2, cv2.NORM_L2)
+            total_error += error ** 2
+            total_points += len(object_points[i])
+
+        mean_error = np.sqrt(total_error / total_points)
+
+        # 輸出結果
+        print("標定成功！")
+        print(f"相機矩陣：\n{camera_matrix}")
+        print(f"畸變係數：\n{dist_coeffs}")
+        print(f"平均重投影誤差: {mean_error} 像素")
+
+        if callback:
+            callback({
+                "status": "success",
+                "camera_matrix": camera_matrix.tolist(),
+                "dist_coeffs": dist_coeffs.tolist(),
+                "mean_error": mean_error
+            })
+
+        return camera_matrix, dist_coeffs, mean_error

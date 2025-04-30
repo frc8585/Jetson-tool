@@ -1,5 +1,6 @@
 import sys
 import os
+import cv2
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
@@ -9,7 +10,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app.services import image_processing
 
 from app.api import register_routes  # 將 API 路由註冊為獨立函數
-from app.utils import startup_tasks, shutdown_tasks  # 啟動/關閉時的輔助任務
 from config import settings  # 配置文件
 
 # 創建 FastAPI 應用
@@ -17,6 +17,20 @@ app = FastAPI(
     title=settings.APP_NAME,  # 從配置中讀取應用名稱
     version=settings.APP_VERSION  # 從配置中讀取應用版本
 )
+
+from app.services import image_processing, zed
+
+async def startup_tasks(app):
+    print("app Start")
+    image_processing.run()
+    # 可初始化資料庫或其他服務
+
+async def shutdown_tasks(app):
+    print("app Close")
+    image_processing.stop()
+    cv2.destroyAllWindows()
+    print("app Close down")
+    # 可清理資料庫或其他資源
 
 # 使用 Lifespan 事件處理器
 @asynccontextmanager
