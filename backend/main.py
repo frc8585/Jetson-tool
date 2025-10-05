@@ -1,6 +1,8 @@
-# backend/main.py
+import platform
+
 from backend.app import app
 
+system_type = platform.system()
 
 if __name__ == "__main__":
     import uvicorn

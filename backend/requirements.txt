@@ -1,2 +1,9 @@
 FastAPI
 uvicorn[standard]
+opencv-python-headless
+
+# Windows 專用
+pygrabber; platform_system == "Windows"
+
+# Linux 專用
+pyudev; platform_system == "Linux"

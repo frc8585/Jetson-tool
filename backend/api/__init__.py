@@ -6,7 +6,7 @@
 
 from fastapi import APIRouter
 
-from . import general_api
+from . import camera_api, general_api
 
 
 # package-level router，聚合各子模組的 routers
@@ -14,5 +14,6 @@ router = APIRouter()
 
 # 把 general_api 的 router include 進來（不在此指定 prefix，留給 app 層）
 router.include_router(general_api.router)
+router.include_router(camera_api.router)
 
 __all__ = ["router"]
