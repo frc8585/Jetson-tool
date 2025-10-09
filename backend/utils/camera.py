@@ -4,7 +4,10 @@ import cv2
 from backend.models.camera import BackendType, Camera
 
 
-def get_connected_cameras():
+def get_all_connected_cameras():
+    """
+    獲取所有目前設備連接的相機
+    """
     cameras = []
     if pyudev is None:
         return cameras
@@ -36,3 +39,5 @@ def start_camera_cap(camera: Camera):
     
 def get_camera_img(camera: Camera):
     pass
+
+
