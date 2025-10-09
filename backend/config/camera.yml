@@ -1,6 +1,0 @@
-cameras:
-- backend: 0
-  backend_detail: ''
-  camera_id: test_001
-  name: Test Camera
-  path: /path/to/test_camera
