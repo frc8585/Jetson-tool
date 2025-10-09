@@ -31,7 +31,6 @@ class CameraData:
 class BackendType:
     OTHER = -1
     LINUX_UDEV = 0
-    WINDOWS_DSHOW = 1
 
 class Camera:
     def __init__(self, name: str, camera_id: str, backend: BackendType, path: str, backend_detail: str = None, camera_data: CameraData = None):

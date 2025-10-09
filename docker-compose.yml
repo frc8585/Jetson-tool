@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: jetson_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    devices:
+      - /dev/video0:/dev/video0 
+      - /dev/video1:/dev/video1
+    volumes:
+      - ./backend:/app:delegated
+    restart: unless-stopped
+
+  # tests:
+  #   build:
+  #     context: ./backend
+  #   depends_on:
+  #     - backend
+  #   entrypoint: ["pytest", "-q", "-s"]
+  #   volumes:
+  #     - ./backend:/app:delegated
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+
+networks:
+  default:
+    driver: bridge
