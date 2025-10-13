@@ -14,8 +14,8 @@ def get_all_connected_cameras():
     context = pyudev.Context()
     for device in context.list_devices(subsystem='video4linux'):
         cam = Camera(
-            name=device.sys_name,
-            camera_id=device.device_node,  # OpenCV uses device node (e.g., '/dev/video0')
+            name=device.sys_name, # TODO: 改成使用者名稱
+            camera_id=device.device_node,  # OpenCV ID
             path=device.device_node,
             backend=BackendType.LINUX_UDEV,
         )
@@ -27,8 +27,10 @@ def get_all_connected_cameras():
 def start_camera_cap(camera: Camera):
     backend_type = camera.backend
     if backend_type == BackendType.LINUX_UDEV:  # Linux UDEV backend
-        # TODO: 撰寫 UDEV 取得相機資訊的程式碼
-        pass
+        cap = cv2.VideoCapture(camera.camera_id)
+        if not cap.isOpened():
+            raise ValueError(f"Cannot open camera at {camera.camera_id}")
+        return cap
             
     elif backend_type == BackendType.OTHER:  # Other backend
         # TODO: 撰寫 其他後端的相機資訊取得程式碼

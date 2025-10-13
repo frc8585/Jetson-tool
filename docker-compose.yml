@@ -10,6 +10,8 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
+    # 設置特權模式 (對應 --privileged)
+    privileged: true
     devices:
       - /dev/video0:/dev/video0 
       - /dev/video1:/dev/video1
