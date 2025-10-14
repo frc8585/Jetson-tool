@@ -24,9 +24,10 @@ def load_camera_config():
             if config is None:
                 config_reset()
                 return
-            for cam in config.get("cameras", []):
-                if not cam in cameras:
-                    cameras.append(Camera(**cam))
+            for cam_dict in config.get("cameras", []):
+                # 檢查 camera_id 是否已存在，避免重複加入
+                if not any(c.camera_id == cam_dict.get("camera_id") for c in cameras):
+                    cameras.append(Camera(**cam_dict))
     except Exception as e:
         print(f"Error loading camera config: {e}")
 
@@ -65,6 +66,34 @@ def get_camera_img(camera_id):
         raise ValueError(f"Failed to capture image from camera {camera_id}")
 
     return frame
+
+# --------------- 對外功能 -----------------
+def add_camera(camera: Camera):
+    if any(cam.camera_id == camera.camera_id for cam in cameras):
+        raise ValueError(f"Camera with ID {camera.camera_id} already exists.")
+    
+    try:
+        cap = camera_utils.start_camera_cap(camera)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        camera_cap[camera.camera_id] = cap
+
+        cameras.append(camera)
+        save_camera_config()
+    except Exception as e:
+        raise ValueError(f"Failed to initialize camera {camera.camera_id}: {e}")
+    
+def remove_camera(camera_id):
+    for cam in cameras:
+        if cam.camera_id == camera_id:
+            cameras.remove(cam)
+            break
+    else:
+        raise ValueError(f"Camera with ID {camera_id} not found.")
+    
+    cap = camera_cap.pop(camera_id, None)
+    cap.release() if cap else None
+    save_camera_config()
 
 # -----------------初始化------------------
 # 1. 檢查 config 檔案是否存在

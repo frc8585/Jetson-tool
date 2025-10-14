@@ -1,9 +1,1 @@
-cameras: [
-  {
-    name: "video0",
-    camera_id: "/dev/video0",
-    backend: 0,
-    path: "/dev/video0",
-    backend_detail: null
-  }
-]
+cameras: []
