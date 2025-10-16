@@ -8,13 +8,14 @@ def get_all_connected_cameras():
     """
     獲取所有目前設備連接的相機
     """
+    # FIXME: 解決單向機占兩個位置會被當作兩個相機的問題
     cameras = []
     if pyudev is None:
         return cameras
     context = pyudev.Context()
     for device in context.list_devices(subsystem='video4linux'):
         cam = Camera(
-            name=device.sys_name, # TODO: 改成使用者名稱
+            name=device.properties.get('ID_V4L_PRODUCT', device.sys_name),
             camera_id=device.device_node,  # OpenCV ID
             path=device.device_node,
             backend=BackendType.LINUX_UDEV,
@@ -41,5 +42,3 @@ def start_camera_cap(camera: Camera):
     
 def get_camera_img(camera: Camera):
     pass
-
-
