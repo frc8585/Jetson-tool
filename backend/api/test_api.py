@@ -1,5 +1,7 @@
 from fastapi import APIRouter
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+import cv2
+import io
 
 from backend.services.camera_manager_service import save_camera_config, load_camera_config, get_camera_config, get_camera_img
 
@@ -23,11 +25,11 @@ async def test_get():
     return JSONResponse(content={"cameras": result})
 
 @router.get("/frametest")
-async def test_get(camera_id: str):
+async def test_get_frame(camera_id: str):
     try:
         frame = get_camera_img(camera_id)
-        # 這裡可以進一步處理 frame，例如轉換成 base64 字串等
-        return JSONResponse(content={"message": f"Frame captured from camera {camera_id}."})
+        _, encoded_image = cv2.imencode(".jpg", frame)
+        return StreamingResponse(io.BytesIO(encoded_image.tobytes()), media_type="image/jpeg")
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
     
