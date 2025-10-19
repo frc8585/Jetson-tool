@@ -46,9 +46,7 @@ def set_cap_table():
         try:
             cap = camera_utils.start_camera_cap(cam)
             # TODO: 把解析度移到camera設定裡
-            # 測試用
-            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
             camera_cap[cam.camera_id] = cap
         except Exception as e:
             print(f"Error initializing camera {cam.camera_id}: {e}")
@@ -61,11 +59,9 @@ def get_camera_img(camera_id):
         raise ValueError(f"Camera with ID {camera_id} not initialized.")
 
     cap = camera_cap[camera_id]
-    ret, frame = cap.read()
-    if not ret:
-        raise ValueError(f"Failed to capture image from camera {camera_id}")
+    frame, timestamp = camera_utils.get_frame_from_cap(cap)
 
-    return frame
+    return frame, timestamp
 
 # --------------- 對外功能 -----------------
 def add_camera(camera: Camera):

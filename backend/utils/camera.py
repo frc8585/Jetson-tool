@@ -1,5 +1,6 @@
 import pyudev
 import cv2
+import time
 
 from backend.models.camera import BackendType, Camera
 
@@ -41,4 +42,15 @@ def start_camera_cap(camera: Camera):
         raise ValueError("Unsupported backend type")
     
 def get_camera_img(camera: Camera):
-    pass
+    cap = start_camera_cap(camera)
+    if cap is None:
+        raise ValueError(f"Could not get capture object for camera {camera.camera_id}")
+
+    ret, frame = cap.read()
+    timestamp = time.time()
+    cap.release()
+
+    if not ret:
+        raise ValueError("Failed to capture image")
+    
+    return frame, timestamp

@@ -27,7 +27,7 @@ async def test_get():
 @router.get("/frametest")
 async def test_get_frame(camera_id: str):
     try:
-        frame = get_camera_img(camera_id)
+        frame, timestamp = get_camera_img(camera_id)
         _, encoded_image = cv2.imencode(".jpg", frame)
         return StreamingResponse(io.BytesIO(encoded_image.tobytes()), media_type="image/jpeg")
     except Exception as e:
