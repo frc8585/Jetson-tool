@@ -54,3 +54,13 @@ def get_camera_img(camera: Camera):
         raise ValueError("Failed to capture image")
     
     return frame, timestamp
+
+
+def get_frame_from_cap(cap:cv2.VideoCapture):
+    """
+    從 cv2.VideoCapture 物件中獲取一幀影像
+    """
+    ret, frame = cap.read()
+    if not ret:
+        raise ValueError("Failed to capture image from camera")
+    return frame, time.time()
