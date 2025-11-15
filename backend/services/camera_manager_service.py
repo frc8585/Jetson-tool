@@ -124,3 +124,5 @@ if not os.path.exists(CAMERA_CONFIG_DIR):
 load_camera_config()
 # # 3. 初始化 camera_cap
 set_cap_table()
+# # 4. 初始化 camera_image_updater
+update_camera_image_updater()
