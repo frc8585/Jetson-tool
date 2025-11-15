@@ -33,3 +33,8 @@ async def test_get_frame(camera_id: str):
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
     
+@router.get("/update_threads")
+async def update_threads():
+    from backend.services import camera_manager_service
+    camera_manager_service.update_camera_image_updater()
+    return JSONResponse(content={"message": "Camera image updater threads updated."})

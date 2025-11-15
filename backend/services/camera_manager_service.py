@@ -1,14 +1,38 @@
+import queue
 import cv2
 import yaml
 
 from backend.models import Camera
 from backend.utils import camera as camera_utils
+from backend.threads.camera_image_threads import CameraImageThread
 import os
 
 CAMERA_CONFIG_DIR = os.path.join("backend", "config", "camera.yml")
 #test_camera = Camera(name="Test Camera", camera_id="test_001", backend=0, path="/path/to/test_camera", backend_detail="")
 cameras = []
 camera_cap = {}
+camera_image = {}
+camera_threads = {}
+    
+def set_image(camera_id, image, timestamp):
+    camera_image[camera_id] = (image, timestamp)
+    
+def update_camera_image_updater():
+    for cam in cameras:
+        if camera_threads.get(cam.camera_id) is not None:
+            camera_threads[cam.camera_id].stop()
+            camera_threads[cam.camera_id].join()
+            camera_threads[cam.camera_id] = None
+        
+        cap = camera_cap.get(cam.camera_id)
+        if cap is None:
+            print(f"Camera with ID {cam.camera_id} not initialized.")
+            continue
+        buffers = queue.Queue(maxsize=1)
+        camera_image[cam.camera_id] = buffers
+        thread = CameraImageThread(cap, buffers)
+        thread.start()
+        camera_threads[cam.camera_id] = thread
 
 def config_reset():
     os.makedirs(os.path.dirname(CAMERA_CONFIG_DIR), exist_ok=True)
@@ -55,11 +79,10 @@ def get_camera_config():
     return cameras
 
 def get_camera_img(camera_id):
-    if camera_id not in camera_cap:
-        raise ValueError(f"Camera with ID {camera_id} not initialized.")
-
-    cap = camera_cap[camera_id]
-    frame, timestamp = camera_utils.get_frame_from_cap(cap)
+    buffers = camera_image.get(camera_id)
+    if buffers is None:
+        raise ValueError(f"No image buffer found for camera ID {camera_id}")
+    frame, timestamp = buffers.get() if not buffers.empty() else (None, None)
 
     return frame, timestamp
 
@@ -90,6 +113,7 @@ def remove_camera(camera_id):
     cap = camera_cap.pop(camera_id, None)
     cap.release() if cap else None
     save_camera_config()
+
 
 # -----------------初始化------------------
 # 1. 檢查 config 檔案是否存在
