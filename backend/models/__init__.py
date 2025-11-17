@@ -1,1 +1,1 @@
-from .camera import Camera, CameraImage, BackendType
+from .camera import Camera, CameraImageBuffer, BackendType

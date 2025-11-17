@@ -16,14 +16,7 @@ class CameraImageWorker(threading.Thread):
                 ret, frame = self.cap.read()
                 timestamp = time.time()
                 if ret:
-                    # 清空隊列中的舊幀
-                    try: 
-                        self.buffers.get_nowait()
-                    except queue.Empty:
-                        pass
-
-                    # 將新的幀放入隊列
-                    self.buffers.put_nowait((frame, timestamp))
+                    self.condition.set(frame, timestamp)
         except Exception as e:
             print(f"Error in CameraImageThread: {e}")
         finally:

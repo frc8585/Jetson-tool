@@ -5,9 +5,11 @@ import os
 import threading
 
 from backend.models import Camera
+from backend.models.camera import CameraImageBuffer
 from backend.utils import camera as camera_utils
 # 
-from backend.workers.camera_image_worker import CameraImageWorker 
+from backend.workers.camera_image_worker import CameraImageWorker
+from backend.workers.recognition_worker import LocalizationWorker 
 
 # 
 CAMERA_CONFIG_DIR = os.path.join("backend", "config", "camera.yml")
@@ -28,7 +30,8 @@ class CameraManager:
         self.cameras = []          # 
         self.camera_cap = {}       # 
         self.camera_image = {}     # 
-        self.camera_threads = {}   # 
+        self.camera_image_threads = {}   # 
+        self.image_processing_threads = {}  #
         
         # 2. 
         self.lock = threading.Lock()
@@ -60,7 +63,7 @@ class CameraManager:
         with self.lock:
             # 
             # 
-            camera_ids_to_stop = list(self.camera_threads.keys())
+            camera_ids_to_stop = list(self.camera_image_threads.keys())
             
             for cam_id in camera_ids_to_stop:
                 self._stop_camera_instance(cam_id)
@@ -77,19 +80,27 @@ class CameraManager:
         print(f"Attempting to start instance for {cam.camera_id}...")
         try:
             cap = camera_utils.start_camera_cap(cam)
-            # 
-            # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-            # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
             self.camera_cap[cam.camera_id] = cap
 
-            buffers = queue.Queue(maxsize=1)
+            # 影像緩衝區
+            buffers = CameraImageBuffer()
             self.camera_image[cam.camera_id] = buffers
             
-            thread = CameraImageThread(cap, buffers)
+            # 啟動影像擷取執行緒
+            thread = CameraImageWorker(cap, buffers)
             thread.name = f"CameraThread-{cam.camera_id}"
             thread.start()
-            self.camera_threads[cam.camera_id] = thread
+            self.camera_image_threads[cam.camera_id] = thread
+            
+            # 啟動影像處理執行緒
+            thread_loc = LocalizationWorker(buffers)
+            thread_loc.name = f"LocalizationWorker-{cam.camera_id}"
+            thread_loc.start()
+            self.image_processing_threads[cam.camera_id] = thread_loc
+            
             print(f"Successfully started instance for {cam.camera_id}")
+            
+        
 
         except Exception as e:
             print(f"Failed to start instance for {cam.camera_id}: {e}")
@@ -104,7 +115,7 @@ class CameraManager:
         # 
         print(f"Stopping instance for {camera_id}...")
         
-        thread = self.camera_threads.pop(camera_id, None)
+        thread = self.camera_image_threads.pop(camera_id, None)
         if thread:
             thread.stop()
             thread.join() # 
