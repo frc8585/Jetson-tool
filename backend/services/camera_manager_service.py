@@ -33,6 +33,8 @@ class CameraManager:
         self.camera_image_threads = {}   # 
         self.image_processing_threads = {}  #
         
+        self.recognition_results = queue.Queue(maxsize=100) 
+        
         # 2. 
         self.lock = threading.Lock()
 
@@ -93,7 +95,7 @@ class CameraManager:
             self.camera_image_threads[cam.camera_id] = thread
             
             # 啟動影像處理執行緒
-            thread_loc = LocalizationWorker(buffers)
+            thread_loc = LocalizationWorker(cam.camera_id, buffers, self.recognition_results)
             thread_loc.name = f"LocalizationWorker-{cam.camera_id}"
             thread_loc.start()
             self.image_processing_threads[cam.camera_id] = thread_loc

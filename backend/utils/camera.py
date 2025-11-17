@@ -64,3 +64,15 @@ def get_frame_from_cap(cap:cv2.VideoCapture):
     if not ret:
         raise ValueError("Failed to capture image from camera")
     return frame, time.time()
+
+def detector_results_to_tagdata(results) -> list:
+    from backend.models.camera import CameraTagData
+    tag_data_list = []
+    for r in results:
+        tag_data = CameraTagData(
+            tag_id=r.tag_id,
+            center=(r.center[0], r.center[1]),
+            corners=[(corner[0], corner[1]) for corner in r.corners]
+        )
+        tag_data_list.append(tag_data)
+    return tag_data_list
