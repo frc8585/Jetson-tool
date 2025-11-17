@@ -7,7 +7,7 @@ import threading
 from backend.models import Camera
 from backend.utils import camera as camera_utils
 # 
-from backend.threads.camera_image_threads import CameraImageThread 
+from backend.workers.camera_image_worker import CameraImageWorker 
 
 # 
 CAMERA_CONFIG_DIR = os.path.join("backend", "config", "camera.yml")

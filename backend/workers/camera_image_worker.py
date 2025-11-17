@@ -3,11 +3,11 @@ import time
 
 from backend.models import Camera
 
-class CameraImageThread(threading.Thread):
-    def __init__(self, cap: cv2.VideoCapture, buffers: queue.Queue):
+class CameraImageWorker(threading.Thread):
+    def __init__(self, cap: cv2.VideoCapture, condition: threading.Condition):
         super().__init__()
         self.cap = cap
-        self.buffers = buffers
+        self.condition = condition
         self.running = True
 
     def run(self):

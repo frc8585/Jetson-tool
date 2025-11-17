@@ -5,6 +5,7 @@ from fastapi import FastAPI
 # 將應用建立與 router 註冊移到此檔案，以保持 main.py 乾淨
 from backend.api import router as api_router
 from backend.services.camera_manager_service import CameraManager
+from backend.services.pipeline_manager_service import PipelineManager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -14,16 +15,17 @@ async def lifespan(app: FastAPI):
     # --- 
     print("Application startup: Initializing CameraManager...")
     
-    # 2. 
+    # 初始化 CameraManager 並啟動
     manager = CameraManager()
-    
-    # 3. 
     manager.start()
-    
-    # 4. 
     app.state.camera_manager = manager
-    
     print("CameraManager started and injected into app.state.")
+    
+    # 初始化 PipelineManager 並啟動
+    pipeline_manager = PipelineManager(manager)
+    pipeline_manager.start()
+    app.state.pipeline_manager = pipeline_manager
+    print("PipelineManager started and injected into app.state.")
     
     try:
         yield # 
