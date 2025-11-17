@@ -9,7 +9,7 @@ from pupil_apriltags import Detector
 from backend.models import CameraImageBuffer, RecognitionResult
 from backend.utils.camera import detector_results_to_tagdata
 
-class LocalizationWorker(threading.Thread):
+class RecognitionWorker(threading.Thread):
     def __init__(self, camera_id: str, image_buffer: CameraImageBuffer, results_queue: queue.Queue):
         super().__init__()
         self.camera_id = camera_id

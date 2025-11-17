@@ -9,7 +9,7 @@ from backend.models import CameraImageBuffer
 from backend.utils import camera as camera_utils
 # 
 from backend.workers.camera_image_worker import CameraImageWorker
-from backend.workers.recognition_worker import LocalizationWorker 
+from backend.workers.recognition_worker import RecognitionWorker 
 
 # 
 CAMERA_CONFIG_DIR = os.path.join("backend", "config", "camera.yml")
@@ -18,7 +18,6 @@ class CameraManager:
     """
     """
     # TODO 撰寫相機管理器的方法/類別註解
-    # TODO 撰寫影像處理程式獲取影像的邏輯
     # TODO 整理程式碼
 
     def __init__(self, config_path=CAMERA_CONFIG_DIR):
@@ -95,7 +94,7 @@ class CameraManager:
             self.camera_image_threads[cam.camera_id] = thread
             
             # 啟動影像處理執行緒
-            thread_loc = LocalizationWorker(cam.camera_id, buffers, self.recognition_results)
+            thread_loc = RecognitionWorker(cam.camera_id, buffers, self.recognition_results)
             thread_loc.name = f"LocalizationWorker-{cam.camera_id}"
             thread_loc.start()
             self.image_processing_threads[cam.camera_id] = thread_loc

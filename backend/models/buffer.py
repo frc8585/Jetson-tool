@@ -1,3 +1,4 @@
+from collections import deque
 import threading
 
 
@@ -39,3 +40,53 @@ class CameraImageBuffer:
         """
         with self.condition:
             return self.latest_frame, self.timestamp
+        
+        
+class SmartLifoBuffer:
+    def __init__(self, maxsize: int, history_queue: 'SmartLifoBuffer' = None):
+        """
+        maxsize: 緩衝區最大容量
+        history_queue: (選填) 如果有舊資料被擠出去，要丟去哪裡？
+        """
+        self.maxlen = maxsize
+        self.buffer = deque() # 雙端佇列
+        self.history_queue = history_queue
+        self.lock = threading.Lock()
+        self.not_empty = threading.Condition(self.lock)
+
+    def put_newest(self, item):
+        """
+        Router 呼叫此方法放入新資料。
+        邏輯：放入右邊 (最新)。如果滿了，把左邊 (最舊) 擠出去。
+        """
+        with self.lock:
+            # 1. 檢查是否滿了
+            if len(self.buffer) >= self.maxlen:
+                # 2. 【關鍵】從左邊彈出最舊的 (FIFO Eviction)
+                oldest_item = self.buffer.popleft()
+                
+                # 3. 如果有設定歷史區，把這個被犧牲的舊資料存起來
+                if self.history_queue:
+                    try:
+                        self.history_queue.put_newest(oldest_item)
+                    except:
+                        pass # 歷史區也滿了，只能丟棄
+
+            # 4. 把最新的放入右邊
+            self.buffer.append(item)
+            
+            # 5. 通知等待中的 Worker
+            self.not_empty.notify()
+
+    def get_newest(self):
+        """
+        Worker 呼叫此方法拿資料。
+        邏輯：從右邊拿 (LIFO Retrieval)。
+        """
+        with self.not_empty:
+            # 如果空的回傳空值
+            if not self.buffer:
+                return None
+            
+            # 【關鍵】從右邊彈出最新的 (LIFO Retrieval)
+            return self.buffer.pop()
