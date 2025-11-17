@@ -8,7 +8,7 @@ class BackendType(IntEnum):
 
 class CameraConfig(BaseModel):
     # TODO: 製作相機設定相關參數
-    K:list[list[float]]
+    K:list[list[float, float, float], list[float, float, float], list[float, float, float]]
     size:tuple[int, int] # (width, height)
     
     def get_all(self):
