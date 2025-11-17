@@ -6,7 +6,7 @@ import queue, cv2
 import numpy as np
 from pupil_apriltags import Detector
 
-from backend.models.camera import CameraImageBuffer, RecognitionResult
+from backend.models import CameraImageBuffer, RecognitionResult
 from backend.utils.camera import detector_results_to_tagdata
 
 class LocalizationWorker(threading.Thread):

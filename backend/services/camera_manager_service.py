@@ -5,7 +5,7 @@ import os
 import threading
 
 from backend.models import Camera
-from backend.models.camera import CameraImageBuffer
+from backend.models import CameraImageBuffer
 from backend.utils import camera as camera_utils
 # 
 from backend.workers.camera_image_worker import CameraImageWorker
