@@ -20,7 +20,6 @@ class CameraManager:
     # TODO 撰寫相機管理器的方法/類別註解
     # TODO 整理程式碼
     # TODO 撰寫相機標定邏輯
-    # TODO 撰寫使用相機設定初始化cap
 
     def __init__(self, config_path=CAMERA_CONFIG_DIR):
         """
@@ -83,6 +82,14 @@ class CameraManager:
         print(f"Attempting to start instance for {cam.camera_id}...")
         try:
             cap = camera_utils.start_camera_cap(cam)
+            
+            if cam.config:
+                if cam.config.size:
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam.config.size[0])
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam.config.size[1])
+                if cam.config.fps:
+                    cap.set(cv2.CAP_PROP_FPS, cam.config.fps)
+            
             self.camera_cap[cam.camera_id] = cap
 
             # 影像緩衝區

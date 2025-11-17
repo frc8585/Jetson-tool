@@ -7,14 +7,15 @@ class BackendType(IntEnum):
     LINUX_UDEV = 0
 
 class CameraConfig(BaseModel):
-    # TODO: 製作相機設定相關參數
     K:list[list[float, float, float], list[float, float, float], list[float, float, float]]
     size:tuple[int, int] # (width, height)
+    fps: Optional[float]
     
     def get_all(self):
         return {
             "K": self.K,
             "size": self.size,
+            "fps": self.fps,
         }
 
 
