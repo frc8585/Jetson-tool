@@ -18,7 +18,7 @@ class TagLocationWorker(threading.Thread):
             if not recognition_result:
                 recognition_result = self.history_buffer.get_newest()
             if not recognition_result:
-                time.sleep(0.01)
+                recognition_result = self.fast_buffer.get_newest(timeout=1)
                 continue
             
             # 處理辨識結果

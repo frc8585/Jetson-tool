@@ -78,7 +78,7 @@ class SmartLifoBuffer:
             # 5. 通知等待中的 Worker
             self.not_empty.notify()
 
-    def get_newest(self):
+    def get_newest(self, timeout=0):
         """
         Worker 呼叫此方法拿資料。
         邏輯：從右邊拿 (LIFO Retrieval)。
@@ -86,7 +86,9 @@ class SmartLifoBuffer:
         with self.not_empty:
             # 如果空的回傳空值
             if not self.buffer:
-                return None
+                signaled = self.not_empty.wait(timeout=timeout)
+                if not signaled:
+                    return None # 超時了還是空的
             
             # 【關鍵】從右邊彈出最新的 (LIFO Retrieval)
             return self.buffer.pop()
