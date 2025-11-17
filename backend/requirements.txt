@@ -2,5 +2,7 @@ FastAPI
 uvicorn[standard]
 opencv-python-headless
 
+pupil-apriltags
+
 # linux only
 pyudev
