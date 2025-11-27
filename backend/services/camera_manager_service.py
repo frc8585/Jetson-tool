@@ -20,6 +20,7 @@ class CameraManager:
     # TODO 撰寫相機管理器的方法/類別註解
     # TODO 整理程式碼
     # TODO 撰寫相機標定邏輯
+    # TODO 處理相機參數資料存取
 
     def __init__(self, config_path=CAMERA_CONFIG_DIR):
         """

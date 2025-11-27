@@ -1,5 +1,7 @@
+from dataclasses import dataclass
 from enum import IntEnum
 from typing import Optional
+import numpy as np
 from pydantic import BaseModel
     
 class BackendType(IntEnum):
@@ -37,12 +39,14 @@ class Camera(BaseModel):
             "config": self.config.model_dump(mode="json"),
         }
 
-class CameraTagData(BaseModel):
+@dataclass
+class CameraTagData():
     tag_id: int
     center: tuple[float, float]
-    corners: list[tuple[float, float]]
+    corners: np.ndarray[tuple[float, float]]
     
-class RecognitionResult(BaseModel):
+@dataclass
+class RecognitionResult():
     camera_id: str
     timestamp: float
     tags: list[CameraTagData]

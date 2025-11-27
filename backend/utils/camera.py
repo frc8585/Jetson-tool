@@ -1,3 +1,4 @@
+import numpy as np
 import pyudev
 import cv2
 import time
@@ -72,7 +73,7 @@ def detector_results_to_tagdata(results) -> list:
         tag_data = CameraTagData(
             tag_id=r.tag_id,
             center=(r.center[0], r.center[1]),
-            corners=[(corner[0], corner[1]) for corner in r.corners]
+            corners=np.array([(corner[0], corner[1]) for corner in r.corners])
         )
         tag_data_list.append(tag_data)
     return tag_data_list

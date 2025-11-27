@@ -45,6 +45,7 @@ class RecognitionWorker(threading.Thread):
                 except queue.Empty:
                     pass  # 如果隊列已經是空的，則忽略
             self.results_queue.put(recognition_result)
+            print(f"Camera {self.camera_id} recognized {len(data)} tags at {timestamp}")
 
     def stop(self):
         self.running = False
