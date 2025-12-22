@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from backend.api import router as api_router
 from backend.services.camera_manager_service import CameraManager
 from backend.services.pipeline_manager_service import PipelineManager
+from backend.services.field_manager_service import FieldManager
+from backend.services.calibration_service import CalibrationService
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -13,19 +15,29 @@ async def lifespan(app: FastAPI):
     
     """
     # --- 
-    print("Application startup: Initializing CameraManager...")
+    print("Application startup: Initializing Services...")
     
     # 初始化 CameraManager 並啟動
-    manager = CameraManager()
-    manager.start()
-    app.state.camera_manager = manager
-    print("CameraManager started and injected into app.state.")
+    camera_manager = CameraManager()
+    camera_manager.start()
+    app.state.camera_manager = camera_manager
+    print("CameraManager started.")
+
+    # 初始化 FieldManager
+    field_manager = FieldManager()
+    app.state.field_manager = field_manager
+    print("FieldManager initialized.")
+    
+    # 初始化 CalibrationService
+    calibration_service = CalibrationService(camera_manager)
+    app.state.calibration_service = calibration_service
+    print("CalibrationService initialized.")
     
     # 初始化 PipelineManager 並啟動
-    pipeline_manager = PipelineManager(manager)
+    pipeline_manager = PipelineManager(camera_manager, field_manager)
     pipeline_manager.start()
     app.state.pipeline_manager = pipeline_manager
-    print("PipelineManager started and injected into app.state.")
+    print("PipelineManager started.")
     
     try:
         yield # 

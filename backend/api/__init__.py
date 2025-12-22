@@ -6,7 +6,7 @@
 
 from fastapi import APIRouter
 
-from . import camera_api, general_api, test_api
+from . import camera_api, general_api, test_api, calibration_api
 
 
 # package-level router，聚合各子模組的 routers
@@ -16,6 +16,7 @@ router = APIRouter()
 router.include_router(general_api.router)
 router.include_router(camera_api.router)
 router.include_router(test_api.router)
+router.include_router(calibration_api.router)
 
 
 __all__ = ["router"]
