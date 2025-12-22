@@ -7,16 +7,18 @@ import numpy as np
 
 from backend.models.buffer import SmartLifoBuffer
 from backend.models.data import LocationData
+from backend.services.camera_manager_service import CameraManager
+from backend.services.field_manager_service import FieldManager
 
 # TODO 驗證資料數值與校準
 class TagLocationWorker(threading.Thread):
-    def __init__(self, fast_buffer: SmartLifoBuffer, history_buffer: SmartLifoBuffer):
+    def __init__(self, fast_buffer: SmartLifoBuffer, history_buffer: SmartLifoBuffer, camera_manager: CameraManager, field_manager: FieldManager):
         super().__init__()
         self.fast_buffer = fast_buffer
         self.history_buffer = history_buffer
+        self.camera_manager = camera_manager
+        self.field_manager = field_manager
         self.running = True
-        self.field = np.array([[0, 0, 0], [16.5, 0, 0], [16.5, -16.5, 0], [0, -16.5, 0]])  # TODO 加载实际场地数据
-        self.K = np.array([[600, 0, 320], [0, 600, 240], [0, 0, 1]])  # TODO 使用实际相机内参
 
     def run(self):
         while self.running:
@@ -30,17 +32,47 @@ class TagLocationWorker(threading.Thread):
         
             print(f"Processing recognition result from camera {recognition_result.camera_id} at {recognition_result.timestamp}")
         
+            # 1. Get Camera Config
+            camera_config = None
+            for cam in self.camera_manager.cameras:
+                if cam.camera_id == recognition_result.camera_id:
+                    camera_config = cam.config
+                    break
+            
+            if not camera_config:
+                print(f"Camera config not found for {recognition_result.camera_id}")
+                continue
+
+            K = np.array(camera_config.K)
+            D = np.array(camera_config.D) if camera_config.D else None
+
             datas = []
             
             for tag in recognition_result.tags:
-                _, rvec, tvec = cv2.solvePnP(self.field, tag.corners, self.K, None)
-                R, _ = cv2.Rodrigues(rvec)
+                # 2. Get Tag World Corners
+                object_points = self.field_manager.get_tag_corners(tag.tag_id)
+                if object_points is None:
+                    # print(f"Tag {tag.tag_id} not found in field config.")
+                    continue
 
-                camera_position = -np.dot(R.T, tvec)
+                # 3. Solve PnP
+                # object_points: 3D points in world coordinate
+                # tag.corners: 2D points in image plane
+                success, rvec, tvec = cv2.solvePnP(object_points, tag.corners, K, D)
+                
+                if not success:
+                    continue
 
-                pitch = np.arcsin(R[2][0])
-                yaw = np.arctan2(R[1][0], R[0][0])
-                roll = np.arctan2(R[2][1], R[2][2])
+                R_mat, _ = cv2.Rodrigues(rvec)
+
+                # Camera position in world coordinate = -R^T * t
+                camera_position = -np.dot(R_mat.T, tvec)
+
+                # Calculate Euler angles (This part depends on rotation convention, assuming XYZ here for now)
+                # Note: This orientation calculation might need adjustment based on specific requirements
+                pitch = np.arcsin(R_mat[2][0])
+                yaw = np.arctan2(R_mat[1][0], R_mat[0][0])
+                roll = np.arctan2(R_mat[2][1], R_mat[2][2])
             
                 datas.append(LocationData(position=camera_position.ravel(), orientation=(pitch, yaw, roll), timestamp=recognition_result.timestamp))
             
