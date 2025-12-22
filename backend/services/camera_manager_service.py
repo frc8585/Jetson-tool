@@ -209,12 +209,12 @@ class CameraManager:
             try:
                 frame, _ = self.get_camera_img(camera_id)
             except ValueError:
+                print(f"Camera {camera_id} not found for streaming.")
                 # Camera might be removed or not started
                 break
                 
             if frame is None:
                 # If no frame, wait a bit to avoid busy loop
-                await asyncio.sleep(0.01)
                 continue
                 
             # Encode frame to JPEG
