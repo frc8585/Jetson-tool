@@ -3,6 +3,7 @@ import cv2
 import yaml
 import os
 import threading
+import asyncio
 
 from backend.models import Camera
 from backend.models import CameraImageBuffer
@@ -201,6 +202,34 @@ class CameraManager:
         except queue.Empty:
             # 
             return None, None
+
+    async def get_camera_stream_generator(self, camera_id: str):
+        """Generator function for MJPEG streaming."""
+        while True:
+            try:
+                frame, _ = self.get_camera_img(camera_id)
+            except ValueError:
+                # Camera might be removed or not started
+                break
+                
+            if frame is None:
+                # If no frame, wait a bit to avoid busy loop
+                await asyncio.sleep(0.01)
+                continue
+                
+            # Encode frame to JPEG
+            ret, buffer = cv2.imencode('.jpg', frame)
+            if not ret:
+                continue
+                
+            frame_bytes = buffer.tobytes()
+            
+            # Yield frame in MJPEG format
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            
+            # Control frame rate slightly to reduce CPU usage if needed
+            await asyncio.sleep(0.01)
 
     def get_camera_config(self):
         """
