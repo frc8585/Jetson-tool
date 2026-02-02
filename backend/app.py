@@ -8,6 +8,8 @@ from backend.services.camera_manager_service import CameraManager
 from backend.services.pipeline_manager_service import PipelineManager
 from backend.services.field_manager_service import FieldManager
 from backend.services.calibration_service import CalibrationService
+from backend.services.data_integrator_service import DataIntegrator
+from backend.services.trajectory_logger_service import TrajectoryLogger
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,8 +35,19 @@ async def lifespan(app: FastAPI):
     app.state.calibration_service = calibration_service
     print("CalibrationService initialized.")
     
-    # 初始化 PipelineManager 並啟動
-    pipeline_manager = PipelineManager(camera_manager, field_manager)
+    # 初始化 TrajectoryLogger 並啟動
+    trajectory_logger = TrajectoryLogger(output_dir="data/trajectories")
+    trajectory_logger.start()
+    app.state.trajectory_logger = trajectory_logger
+    print("TrajectoryLogger started.")
+    
+    # 初始化 DataIntegrator
+    data_integrator = DataIntegrator(trajectory_logger=trajectory_logger)
+    app.state.data_integrator = data_integrator
+    print("DataIntegrator initialized.")
+    
+    # 初始化 PipelineManager 並啟動（傳遞 data_integrator）
+    pipeline_manager = PipelineManager(camera_manager, field_manager, data_integrator)
     pipeline_manager.start()
     app.state.pipeline_manager = pipeline_manager
     print("PipelineManager started.")
@@ -43,11 +56,14 @@ async def lifespan(app: FastAPI):
         yield # 
     finally:
         # --- 
-        print("Application shutdown: Stopping CameraManager...")
-        # 6. 
+        print("Application shutdown: Stopping services...")
+        # 停止 TrajectoryLogger
+        if hasattr(app.state, "trajectory_logger"):
+            app.state.trajectory_logger.stop()
+        # 停止 CameraManager
         if hasattr(app.state, "camera_manager"):
             app.state.camera_manager.stop_all()
-        print("CameraManager stopped gracefully.")
+        print("All services stopped gracefully.")
 
 
 def create_app() -> FastAPI:

@@ -12,12 +12,13 @@ from backend.services.field_manager_service import FieldManager
 
 # TODO 驗證資料數值與校準
 class TagLocationWorker(threading.Thread):
-    def __init__(self, fast_buffer: SmartLifoBuffer, history_buffer: SmartLifoBuffer, camera_manager: CameraManager, field_manager: FieldManager):
+    def __init__(self, fast_buffer: SmartLifoBuffer, history_buffer: SmartLifoBuffer, camera_manager: CameraManager, field_manager: FieldManager, data_integrator):
         super().__init__()
         self.fast_buffer = fast_buffer
         self.history_buffer = history_buffer
         self.camera_manager = camera_manager
         self.field_manager = field_manager
+        self.data_integrator = data_integrator
         self.running = True
 
     def run(self):
@@ -74,13 +75,19 @@ class TagLocationWorker(threading.Thread):
                 yaw = np.arctan2(R_mat[1][0], R_mat[0][0])
                 roll = np.arctan2(R_mat[2][1], R_mat[2][2])
             
-                datas.append(LocationData(position=camera_position.ravel(), orientation=(pitch, yaw, roll), timestamp=recognition_result.timestamp))
+                datas.append(LocationData(
+                    timestamp=recognition_result.timestamp,
+                    position=camera_position.ravel(),
+                    orientation=np.array([pitch, yaw, roll]),
+                    camera_id=recognition_result.camera_id,
+                    num_tags=len(recognition_result.tags),
+                    tag_ids=[tag.tag_id],
+                    error=None  # 稍後可計算重投影誤差
+                ))
             
-            if datas:
-                avg_position = np.mean([d.position for d in datas], axis=0)
-                avg_orientation = np.mean([d.orientation for d in datas], axis=0)
-                
-                print(f"Estimated Camera Position: {avg_position}, Orientation: {avg_orientation}")
+            # 發送每個觀測給整合器
+            for data in datas:
+                self.data_integrator.add_observation(data)
             
     def stop(self):
         self.running = False
